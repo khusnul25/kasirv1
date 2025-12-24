@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyKasir Pro - All-in-One POS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --bg: #f3f4f6;
+            --white: #ffffff;
+            --dark: #111827;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--dark); }
+
+        /* --- LOGIN --- */
+        #login-screen { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-card { background: white; padding: 30px; border-radius: 15px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        
+        /* --- SIDEBAR --- */
+        .sidebar { position: fixed; left: -260px; top: 0; width: 250px; height: 100%; background: var(--dark); color: white; transition: 0.3s; z-index: 999; padding-top: 60px; }
+        .sidebar.active { left: 0; }
+        .sidebar button { width: 100%; padding: 15px 25px; text-align: left; background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 16px; }
+        .sidebar button:hover { background: #1f2937; color: white; }
+        .sidebar button.active { background: var(--primary); color: white; }
+
+        /* --- UI ELEMENTS --- */
+        header { background: white; padding: 15px 20px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 998; }
+        .menu-btn { font-size: 24px; cursor: pointer; background: none; border: none; margin-right: 15px; }
+        .container { max-width: 800px; margin: 20px auto; padding: 0 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 20px; }
+        .hidden { display: none; }
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 990; }
+        .overlay.active { display: block; }
+
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; }
+        .btn-main { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+        .btn-pay { background: var(--secondary); color: white; margin-top: 10px; }
+        .btn-danger { background: var(--danger); color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; }
+        
+        .product-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
+        .qr-preview { text-align: center; border: 2px dashed #ddd; padding: 20px; border-radius: 10px; margin-top: 10px; }
+        #qr-display { width: 150px; height: 150px; margin-bottom: 10px; display: none; margin-left: auto; margin-right: auto; }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-card">
+        <h2>FiyKas Login</h2>
+        <input type="text" id="user" placeholder="Username">
+        <input type="password" id="pass" placeholder="Password">
+        <button class="btn-main" style="background:var(--primary); color:white" onclick="handleLogin()">MASUK</button>
+    </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+<div class="sidebar" id="sidebar">
+    <button onclick="showPage('kasir', 'Dashboard Kasir')" class="active">🏠 Kasir Utama</button>
+    <button onclick="showPage('stok', 'Kelola Stok & Barang')">📦 Atur Stok</button>
+    <button onclick="showPage('pembayaran', 'QRIS & Pembayaran')">💳 QRIS / Rekening</button>
+    <button onclick="showPage('riwayat', 'Riwayat & Laporan')">📜 Laporan Excel</button>
+    <button onclick="logout()" style="color:var(--danger); margin-top:30px">🚪 Logout</button>
+</div>
+
+<header id="main-header" class="hidden">
+    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+    <h1 id="page-title" style="font-size: 18px">Dashboard Kasir</h1>
+</header>
+
+<div class="container hidden" id="main-content">
+    
+    <div id="page-kasir" class="page">
+        <input type="text" id="searchBar" placeholder="Cari nama barang..." onkeyup="renderKasir()">
+        <div id="kasir-list" class="card"></div>
+        <button class="btn-main btn-pay" id="btn-bayar" onclick="prosesBayar()">BAYAR (Rp 0)</button>
+    </div>
+
+    <div id="page-stok" class="page hidden">
+        <div class="card">
+            <h3>+ Tambah Produk</h3>
+            <input type="text" id="new-name" placeholder="Nama Produk">
+            <input type="number" id="new-price" placeholder="Harga (Rp)">
+            <input type="number" id="new-stock" placeholder="Jumlah Stok">
+            <button class="btn-main" style="background:var(--primary); color:white" onclick="tambahBarang()">Simpan Barang</button>
+        </div>
+        <div class="card" id="stok-list"></div>
+    </div>
+
+    <div id="page-pembayaran" class="page hidden">
+        <div class="card">
+            <h3>Pengaturan QRIS & Bank</h3>
+            <label><small>Nama Bank/E-Wallet:</small></label>
+            <input type="text" id="pay-method" placeholder="Contoh: DANA / BCA" oninput="updatePayInfo()">
+            <label><small>Nomor Rekening/HP:</small></label>
+            <input type="text" id="pay-number" placeholder="0812xxxxx" oninput="updatePayInfo()">
+            <label><small>Link URL Gambar QRIS:</small></label>
+            <input type="text" id="pay-qris" placeholder="https://link-gambar-qris.jpg" oninput="updatePayInfo()">
+            
+            <div class="qr-preview">
+                <p id="prev-method" style="font-weight:bold"></p>
+                <img id="qr-display" src="" alt="QRIS">
+                <p id="prev-number"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-riwayat" class="page hidden">
+        <button class="btn-main" style="background:#1d6f42; color:white; margin-bottom:15px" onclick="exportToExcel()">📊 Download Excel (.xlsx)</button>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px">
+                <h3 style="margin:0">Log Transaksi</h3>
+                <button onclick="hapusSemuaRiwayat()" style="color:var(--danger); border:none; background:none; cursor:pointer">Hapus Semua</button>
+            </div>
+            <div id="history-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let products = JSON.parse(localStorage.getItem('db_products')) || [];
+    let history = JSON.parse(localStorage.getItem('db_history')) || [];
+    let payInfo = JSON.parse(localStorage.getItem('db_pay')) || {method: 'DANA', number: '', qris: ''};
+    let cart = {};
+    let bluetoothDevice = null;
+
+    function handleLogin() {
+        if(document.getElementById('user').value === 'user' && document.getElementById('pass').value === '1234') {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-header').classList.remove('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            renderKasir();
+        } else { alert('Login Gagal!'); }
+    }
+
+    function toggleMenu() {
+        document.getElementById('sidebar').classList.toggle('active');
+        document.getElementById('overlay').classList.toggle('active');
+    }
+
+    function showPage(pageId, title) {
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+        document.getElementById('page-' + pageId).classList.remove('hidden');
+        document.getElementById('page-title').innerText = title;
+        document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+        if(event) event.currentTarget.classList.add('active');
+        toggleMenu();
+        if(pageId === 'kasir') renderKasir();
+        if(pageId === 'stok') renderStok();
+        if(pageId === 'riwayat') renderRiwayat();
+        if(pageId === 'pembayaran') initPayPage();
+    }
+
+    function renderKasir() {
+        const list = document.getElementById('kasir-list');
+        const query = document.getElementById('searchBar').value.toLowerCase();
+        list.innerHTML = products.length === 0 ? '<p style="text-align:center">Belum ada barang.</p>' : '';
+        
+        products.filter(p => p.name.toLowerCase().includes(query)).forEach(p => {
+            const qty = cart[p.id] || 0;
+            list.innerHTML += `
+                <div class="product-item">
+                    <div><b>${p.name}</b><br><small>Rp ${p.price.toLocaleString()} | Stok: ${p.stock}</small></div>
+                    <div style="display:flex; align-items:center; gap:10px">
+                        <button onclick="updateCart(${p.id},-1)" style="padding:5px 10px">-</button>
+                        <b>${qty}</b>
+                        <button onclick="updateCart(${p.id},1)" style="padding:5px 10px">+</button>
+                    </div>
+                </div>`;
+        });
+        updateTotal();
+    }
+
+    function updateCart(id, change) {
+        const p = products.find(i => i.id === id);
+        const cur = cart[id] || 0;
+        if(change > 0 && p.stock <= cur) return alert('Stok Habis!');
+        cart[id] = Math.max(0, cur + change);
+        renderKasir();
+    }
+
+    function updateTotal() {
+        let t = 0;
+        products.forEach(p => t += (cart[p.id] || 0) * p.price);
+        document.getElementById('btn-bayar').innerText = `BAYAR (Rp ${t.toLocaleString()})`;
+    }
+
+    // --- CETAK BLUETOOTH ---
+    async function printBluetooth(text) {
+        try {
+            if (!bluetoothDevice) {
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, { namePrefix: 'RPP' }, { namePrefix: 'MTP' }],
+                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+                });
+            }
+            const server = await bluetoothDevice.gatt.connect();
+            const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+            const char = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+            const data = new TextEncoder().encode(text + "\n\n\n");
+            await char.writeValue(data);
+            alert("Mencetak...");
+        } catch (e) { alert("Bluetooth Error: " + e.message); }
+    }
+
+    async function prosesBayar() {
+        let t = 0; let itemsDetail = []; let strukText = "   STRUK PEMBAYARAN\n------------------\n";
+        products.forEach(p => {
+            if(cart[p.id] > 0) {
+                let sub = p.price * cart[p.id];
+                t += sub;
+                p.stock -= cart[p.id];
+                itemsDetail.push(`${p.name} x${cart[p.id]}`);
+                strukText += `${p.name}\n${cart[p.id]} x ${p.price} = ${sub}\n`;
+            }
+        });
+        if(t === 0) return alert('Pilih barang!');
+        
+        strukText += `------------------\nTOTAL: Rp ${t.toLocaleString()}\nTerima Kasih!`;
+        history.unshift({id: Date.now(), time: new Date().toLocaleString(), total: t, detail: itemsDetail.join(", ")});
+        
+        cart = {}; save();
+        
+        if(confirm(`Total: Rp ${t.toLocaleString()}\nTransaksi Berhasil! Cetak Struk?`)) {
+            await printBluetooth(strukText);
+        }
+        renderKasir();
+    }
+
+    function tambahBarang() {
+        const n = document.getElementById('new-name').value;
+        const p = parseInt(document.getElementById('new-price').value);
+        const s = parseInt(document.getElementById('new-stock').value || 0);
+        if(!n || !p) return alert('Isi data!');
+        products.push({id: Date.now(), name: n, price: p, stock: s});
+        save(); renderStok();
+        document.getElementById('new-name').value = ''; document.getElementById('new-price').value = ''; document.getElementById('new-stock').value = '';
+    }
+
+    function renderStok() {
+        const list = document.getElementById('stok-list');
+        list.innerHTML = '<h3>Inventori Barang</h3>';
+        products.forEach(p => {
+            list.innerHTML += `<div class="product-item">
+                <div><b>${p.name}</b><br><small>Stok: ${p.stock}</small></div>
+                <button class="btn-danger" onclick="hapusBarang(${p.id})">Hapus</button>
+            </div>`;
+        });
+    }
+
+    function hapusBarang(id) {
+        if(confirm('Hapus item?')) { products = products.filter(p => p.id !== id); save(); renderStok(); }
+    }
+
+    function initPayPage() {
+        document.getElementById('pay-method').value = payInfo.method;
+        document.getElementById('pay-number').value = payInfo.number;
+        document.getElementById('pay-qris').value = payInfo.qris;
+        updatePayInfo();
+    }
+
+    function updatePayInfo() {
+        payInfo = {
+            method: document.getElementById('pay-method').value,
+            number: document.getElementById('pay-number').value,
+            qris: document.getElementById('pay-qris').value
+        };
+        document.getElementById('prev-method').innerText = payInfo.method;
+        document.getElementById('prev-number').innerText = payInfo.number;
+        const img = document.getElementById('qr-display');
+        if(payInfo.qris) { img.src = payInfo.qris; img.style.display = 'inline-block'; }
+        else { img.style.display = 'none'; }
+        save();
+    }
+
+    function renderRiwayat() {
+        const list = document.getElementById('history-list');
+        list.innerHTML = '';
+        history.forEach(h => {
+            list.innerHTML += `<div class="product-item">
+                <div><small>${h.time}</small><br><b>Rp ${h.total.toLocaleString()}</b><br><small>${h.detail}</small></div>
+                <button onclick="hapusRiwayat(${h.id})" style="color:red; border:none; background:none; cursor:pointer">×</button>
+            </div>`;
+        });
+    }
+
+    function hapusRiwayat(id) {
+        history = history.filter(h => h.id !== id);
+        save(); renderRiwayat();
+    }
+
+    function hapusSemuaRiwayat() {
+        if(confirm('Hapus semua laporan?')) { history = []; save(); renderRiwayat(); }
+    }
+
+    function exportToExcel() {
+        const ws = XLSX.utils.json_to_sheet(history);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Laporan Penjualan");
+        XLSX.writeFile(wb, "Laporan_MyKasir.xlsx");
+    }
+
+    function save() {
+        localStorage.setItem('db_products', JSON.stringify(products));
+        localStorage.setItem('db_history', JSON.stringify(history));
+        localStorage.setItem('db_pay', JSON.stringify(payInfo));
+    }
+
+    function logout() { location.reload(); }
+</script>
+</body>
+</html>
