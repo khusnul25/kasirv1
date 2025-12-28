@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyKasir Pro - By Afiya</title>
+    <title>MyKasir Pro - All-in-One POS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -55,7 +55,7 @@
 <div id="login-screen">
     <div class="login-card">
         <h2>MyKasir Login</h2>
-        <input type="text" id="username" placeholder="Username" value="fiya">
+        <input type="text" id="user" placeholder="Username" value="user">
         <input type="password" id="pass" placeholder="Password" value="1234">
         <button class="btn-main" style="background:var(--primary); color:white" onclick="handleLogin()">MASUK</button>
     </div>
@@ -137,7 +137,7 @@
     let bluetoothDevice = null;
 
     function handleLogin() {
-        if(document.getElementById('user').value === 'fiya' && document.getElementById('pass').value === '1234') {
+        if(document.getElementById('user').value === 'user' && document.getElementById('pass').value === '1234') {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-header').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
@@ -374,4 +374,4 @@
     function logout() { location.reload(); }
 </script>
 </body>
-</html>
+    </html>
