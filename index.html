@@ -139,8 +139,58 @@
             <img id="imgQrisDisplay" src="" class="w-full rounded shadow-inner">
             <p class="mt-4 text-[10px] text-gray-400 uppercase">Klik dimana saja untuk tutup</p>
         </div>
-    </div>
+    </div>            
+<script>
+    const BACKEND_URL = "/api";
+    let isDataLoaded = false; 
+    async function loadDataDariServer() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/data`);
+            if (!response.ok) throw new Error("Gagal mengambil data");
+            
+            const data = await response.json();           
+            inventory = data.inventory || [];
+            historyData = data.history || [];
+            notesData = data.notes || [];
+            qrisImg = data.qris || "";
 
+            isDataLoaded = true; 
+            if (typeof renderBarang === 'function') renderBarang();
+            console.log("Data berhasil dimuat");
+        } catch (error) {
+            console.error("Gagal load data:", error);
+        }
+    }
+
+    async function saveDB() {
+        if (!isDataLoaded) {
+            console.warn("Data belum siap, save dibatalkan untuk mencegah overwrite!");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${BACKEND_URL}/data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    inventory: inventory, 
+                    history: historyData, 
+                    notes: notesData, 
+                    qris: qrisImg 
+                })
+            });
+            if (!response.ok) throw new Error("Gagal menyimpan data");
+            console.log("Data berhasil disimpan");
+        } catch (error) {
+            console.error("Gagal simpan data:", error);
+        }
+    }
+
+    loadDataDariServer();
+    setInterval(() => {
+        loadDataDariServer();
+    }, 5000); 
+</script>
     <script>
 const BACKEND_URL = "/api";
         let inventory = [];
