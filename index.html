@@ -420,5 +420,64 @@ const BACKEND_URL = "/api";
         function clearCart() { cart = []; renderCart(); }
         loadDataDariServer();
     </script>
+   
+<script>
+    const BACKEND_URL = "/api";
+    async function loadDataDariServer() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/data`);
+            if (!response.ok) throw new Error("Gagal mengambil data");
+            
+            const data = await response.json();
+            
+            inventory = data.inventory || [];
+            historyData = data.history || [];
+            notesData = data.notes || [];
+            qrisImg = data.qris || "";
+
+            if (typeof renderBarang === 'function') renderBarang();
+            console.log("Data berhasil diperbarui dari server");
+        } catch (error) {
+            console.error("Gagal load data:", error);
+        }
+    }
+
+    async function saveDB() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    inventory: inventory, 
+                    history: historyData, 
+                    notes: notesData, 
+                    qris: qrisImg 
+                })
+            });
+            if (!response.ok) throw new Error("Gagal menyimpan data");
+            console.log("Data berhasil disimpan ke server");
+        } catch (error) {
+            console.error("Gagal simpan data:", error);
+        }
+    }
+
+    function hapusBarang(bc) { 
+        if(confirm("Hapus barang dari database?")) { 
+            inventory = inventory.filter(i => i.barcode !== bc); 
+            saveDB(); 
+            if (typeof renderBarang === 'function') renderBarang();
+        } 
+    }
+
+    function clearCart() { 
+        cart = []; 
+        if (typeof renderCart === 'function') renderCart();
+    }
+
+    loadDataDariServer();
+    setInterval(() => {
+        loadDataDariServer();
+    }, 5000); 
+</script>
 </body>
 </html>
