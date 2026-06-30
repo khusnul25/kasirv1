@@ -2,376 +2,424 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyKasir Pro - All-in-One POS</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My KasirCloud</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    
     <style>
-        :root {
-            --primary: #4f46e5;
-            --secondary: #10b981;
-            --danger: #ef4444;
-            --bg: #f3f4f6;
-            --white: #ffffff;
-            --dark: #111827;
-        }
-
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--dark); }
-
-        /* --- LOGIN --- */
-        #login-screen { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .login-card { background: white; padding: 30px; border-radius: 15px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        body { font-family: 'Poppins', sans-serif; background-color: #e0e5ec; max-width: 500px; margin: 0 auto; overflow-x: hidden; }
+        .neo-card { background: #e0e5ec; border-radius: 20px; box-shadow: 8px 8px 16px #a3b1c6, -8px -8px 16px #ffffff; }
+        .neo-inset { background: #e0e5ec; border-radius: 10px; box-shadow: inset 4px 4px 8px #a3b1c6, inset -4px -4px 8px #ffffff; }
+        .neo-btn { background: #e0e5ec; border-radius: 12px; box-shadow: 4px 4px 8px #a3b1c6, -4px -4px 8px #ffffff; transition: 0.2s; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .neo-btn:active { box-shadow: inset 3px 3px 6px #a3b1c6, inset -3px -3px 6px #ffffff; transform: scale(0.95); }
+        .cloud-header { background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); color: #1e40af; padding: 12px; border-radius: 20px 20px 0 0; font-weight: bold; font-size: 14px; }
         
-        /* --- SIDEBAR --- */
-        .sidebar { position: fixed; left: -260px; top: 0; width: 250px; height: 100%; background: var(--dark); color: white; transition: 0.3s; z-index: 999; padding-top: 60px; }
-        .sidebar.active { left: 0; }
-        .sidebar button { width: 100%; padding: 15px 25px; text-align: left; background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 16px; }
-        .sidebar button:hover { background: #1f2937; color: white; }
-        .sidebar button.active { background: var(--primary); color: white; }
-
-        /* --- UI ELEMENTS --- */
-        header { background: white; padding: 15px 20px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 998; }
-        .menu-btn { font-size: 24px; cursor: pointer; background: none; border: none; margin-right: 15px; }
-        .container { max-width: 800px; margin: 20px auto; padding: 0 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 20px; }
-        .hidden { display: none; }
-        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 990; }
-        .overlay.active { display: block; }
-
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; }
-        .btn-main { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
-        .btn-pay { background: var(--secondary); color: white; margin-top: 10px; }
-        .btn-danger { background: var(--danger); color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; }
-        
-        .product-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
-        .qty-control { display: flex; align-items: center; gap: 8px; background: #f9fafb; padding: 5px; border-radius: 8px; border: 1px solid #e5e7eb; }
-        .qty-control button { width: 30px; height: 30px; border-radius: 5px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: bold; }
-        
-        .qr-preview { text-align: center; border: 2px dashed #ddd; padding: 20px; border-radius: 10px; margin-top: 10px; }
-        #qr-display { width: 150px; height: 150px; margin-bottom: 10px; display: none; margin-left: auto; margin-right: auto; }
+        #scanner-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+        #scanner-box { width: 80%; max-width: 300px; aspect-ratio: 1/1; border-radius: 20px; overflow: hidden; border: 4px solid #fff; background: #222; }
+        @media print { body * { display: none !important; } #printArea, #printArea * { display: block !important; visibility: visible !important; } #printArea { position: absolute; left: 0; top: 0; width: 100%; background: white; } }
     </style>
 </head>
-<body>
+<body class="p-4 pb-28">
 
-<div id="login-screen">
-    <div class="login-card">
-        <h2>MyKasir Login</h2>
-        <input type="text" id="user" placeholder="Username" value="user">
-        <input type="password" id="pass" placeholder="Password" value="1234">
-        <button class="btn-main" style="background:var(--primary); color:white" onclick="handleLogin()">MASUK</button>
-    </div>
-</div>
+    <div id="printArea" class="hidden"></div>
 
-<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-<div class="sidebar" id="sidebar">
-    <button onclick="showPage('kasir', 'Dashboard Kasir')" class="active">🏠 Kasir Utama</button>
-    <button onclick="showPage('stok', 'Kelola Stok & Barang')">📦 Atur Stok</button>
-    <button onclick="showPage('pembayaran', 'QRIS & Pembayaran')">💳 QRIS / Rekening</button>
-    <button onclick="showPage('riwayat', 'Riwayat & Laporan')">📜 Laporan Excel</button>
-    <button onclick="logout()" style="color:var(--danger); margin-top:30px">🚪 Logout</button>
-</div>
-
-<header id="main-header" class="hidden">
-    <button class="menu-btn" onclick="toggleMenu()">☰</button>
-    <h1 id="page-title" style="font-size: 18px">Dashboard Kasir</h1>
-</header>
-
-<div class="container hidden" id="main-content">
-    
-    <div id="page-kasir" class="page">
-        <input type="text" id="searchBar" placeholder="Cari nama barang..." onkeyup="renderKasir()">
-        <div id="kasir-list" class="card"></div>
-        <button class="btn-main btn-pay" id="btn-bayar" onclick="prosesBayar()">BAYAR (Rp 0)</button>
+    <div id="scanner-overlay">
+        <div id="scanner-box"></div>
+        <button onclick="closeScanner()" class="mt-8 bg-white/20 text-white px-10 py-3 rounded-full font-bold uppercase text-xs">TUTUP KAMERA</button>
     </div>
 
-    <div id="page-stok" class="page hidden">
-        <div class="card">
-            <h3>+ Tambah Produk Baru</h3>
-            <input type="text" id="new-name" placeholder="Nama Produk">
-            <input type="number" id="new-price" placeholder="Harga (Rp)">
-            <input type="number" id="new-stock" placeholder="Jumlah Stok Awal">
-            <button class="btn-main" style="background:var(--primary); color:white" onclick="tambahBarang()">Simpan Barang</button>
+    <div class="mb-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-bold text-gray-700">My KasirCloud</h1>
+            <p class="text-[10px] text-blue-500 font-bold tracking-widest uppercase">Dibuat dengan ♥️ oleh fy</p>
         </div>
-        
-        <div class="card">
-            <h3>Pencarian & Inventori</h3>
-            <input type="text" id="searchStok" placeholder="Cari barang di gudang..." onkeyup="renderStok()">
-            <div id="stok-list"></div>
+        <button onclick="toggleSettings()" class="neo-btn p-3 text-gray-500 font-bold">&#8801;</button>
+    </div>
+    <div id="loadingInfo" class="text-center text-xs text-blue-500 font-bold mb-4">Mengambil data dari Cloud...</div>
+
+    <div class="neo-card p-4 mb-6">
+        <div class="flex gap-3">
+            <div class="neo-inset flex-1 p-1">
+                <input type="text" id="barcodeScan" onkeypress="if(event.key === 'Enter') handleBarcode(this.value)" placeholder="Scan Barcode..." class="w-full bg-transparent p-3 outline-none text-sm">
+            </div>
+            <button onclick="openScanner('JUAL')" class="neo-btn px-4 text-blue-500">&#128247;</button>
         </div>
     </div>
 
-    <div id="page-pembayaran" class="page hidden">
-        <div class="card">
-            <h3>Pengaturan QRIS & Bank</h3>
-            <label><small>Nama Bank/E-Wallet:</small></label>
-            <input type="text" id="pay-method" placeholder="Contoh: DANA / BCA" oninput="updatePayInfo()">
-            <label><small>Nomor Rekening/HP:</small></label>
-            <input type="text" id="pay-number" placeholder="0812xxxxx" oninput="updatePayInfo()">
-            <label><small>Link URL Gambar QRIS:</small></label>
-            <input type="text" id="pay-qris" placeholder="https://link-gambar-qris.jpg" oninput="updatePayInfo()">
-            
-            <div class="qr-preview">
-                <p id="prev-method" style="font-weight:bold"></p>
-                <img id="qr-display" src="" alt="QRIS">
-                <p id="prev-number"></p>
+    <div class="neo-card mb-6">
+        <div class="cloud-header flex justify-between uppercase">
+            <span>Keranjang Belanja</span>
+            <button onclick="clearCart()" class="text-[10px] bg-white/30 px-2 py-1 rounded">RESET</button>
+        </div>
+        <div class="p-4">
+            <div id="tabelPesanan" class="min-h-[50px] max-h-[150px] overflow-y-auto text-[11px] text-gray-400 italic space-y-2">Kosong.</div>
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <div class="flex justify-between mb-4">
+                    <span class="text-gray-500">Total:</span>
+                    <span class="text-xl font-bold text-gray-800" id="grandTotal">Rp 0</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button id="btnTunai" onclick="setPayment('TUNAI')" class="neo-btn py-3 text-[10px] font-bold border-2 border-blue-400 text-blue-600">TUNAI</button>
+                    <button id="btnQris" onclick="setPayment('QRIS')" class="neo-btn py-3 text-[10px] font-bold text-gray-400">QRIS</button>
+                </div>
+                <button onclick="prosesTransaksi()" class="w-full neo-btn bg-green-500 text-white py-4 font-bold uppercase shadow-lg shadow-green-200">PROSES BAYAR</button>
             </div>
         </div>
     </div>
 
-    <div id="page-riwayat" class="page hidden">
-        <button class="btn-main" style="background:#1d6f42; color:white; margin-bottom:15px" onclick="exportToExcel()">📊 Download Excel (.xlsx)</button>
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px">
-                <h3 style="margin:0">Log Transaksi</h3>
-                <button onclick="hapusSemuaRiwayat()" style="color:var(--danger); border:none; background:none; cursor:pointer">Hapus Semua</button>
+    <div class="neo-card mb-6">
+        <div class="cloud-header bg-gradient-to-r from-purple-500 to-pink-400 text-white font-bold uppercase">Stok & Database</div>
+        <div class="p-4">
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="cariBarang" onkeyup="renderBarang()" placeholder="Cari Nama/Barcode..." class="neo-inset flex-1 p-3 outline-none text-xs bg-transparent">
+                <button onclick="openScanner('CARI')" class="neo-btn px-4 text-purple-600">&#128247;</button>
             </div>
-            <div id="history-list"></div>
+            <div id="daftarBarang" class="max-h-[250px] overflow-y-auto space-y-2"></div>
         </div>
     </div>
-</div>
 
-<script>
-    let products = JSON.parse(localStorage.getItem('db_products')) || [];
-    let history = JSON.parse(localStorage.getItem('db_history')) || [];
-    let payInfo = JSON.parse(localStorage.getItem('db_pay')) || {method: 'DANA', number: '', qris: ''};
-    let cart = {};
-    let bluetoothDevice = null;
+    <div class="neo-card mb-6">
+        <div class="cloud-header bg-gradient-to-r from-gray-600 to-gray-400 text-white flex justify-between uppercase">
+            <span>Histori Transaksi</span>
+            <button onclick="clearAllHistory()" class="text-[10px] bg-black/20 px-2 py-1 rounded text-white">CLEAR ALL</button>
+        </div>
+        <div id="historyList" class="p-4 space-y-2 max-h-[150px] overflow-y-auto"></div>
+    </div>
 
-    function handleLogin() {
-        if(document.getElementById('user').value === 'user' && document.getElementById('pass').value === '1234') {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-header').classList.remove('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-            renderKasir();
-        } else { alert('Login Gagal!'); }
-    }
+    <div id="notesPanel" class="fixed inset-x-0 bottom-0 bg-white p-6 rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 z-[60]">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-gray-700 uppercase text-sm">Catatan Hutang & Pesanan</h3>
+            <button onclick="toggleNotes()" class="text-gray-400 font-bold px-2">&#10008;</button>
+        </div>
+        <div class="flex gap-2 mb-4">
+            <input type="text" id="inputNote" placeholder="Tulis catatan baru..." class="flex-1 neo-inset p-3 outline-none text-xs bg-gray-50">
+            <button onclick="addNote()" class="neo-btn px-4 bg-yellow-400 text-gray-700 font-bold">+</button>
+        </div>
+        <div id="listNotes" class="max-h-[300px] overflow-y-auto space-y-2"></div>
+    </div>
 
-    function toggleMenu() {
-        document.getElementById('sidebar').classList.toggle('active');
-        document.getElementById('overlay').classList.toggle('active');
-    }
+    <div id="inputPanel" class="fixed inset-x-0 bottom-0 bg-white p-6 rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 z-50">
+        <h3 class="font-bold text-gray-700 mb-4 uppercase">Input Data Barang</h3>
+        <div class="space-y-3">
+            <div class="flex gap-2">
+                <input type="text" id="inputBarcode" placeholder="Barcode" class="flex-1 neo-inset p-3 outline-none text-sm">
+                <button onclick="openScanner('TAMBAH')" class="neo-btn px-4">&#128247;</button>
+            </div>
+            <input type="text" id="inputNama" placeholder="Nama Barang" class="w-full neo-inset p-3 outline-none text-sm">
+            <div class="flex gap-2">
+                <input type="number" id="inputHarga" placeholder="Harga" class="w-1/2 neo-inset p-3 outline-none text-sm">
+                <input type="number" id="inputStok" placeholder="Stok" class="w-1/2 neo-inset p-3 outline-none text-sm">
+            </div>
+            <button onclick="tambahBarang()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold uppercase">SIMPAN BARANG</button>
+        </div>
+    </div>
 
-    function showPage(pageId, title) {
-        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-        document.getElementById('page-' + pageId).classList.remove('hidden');
-        document.getElementById('page-title').innerText = title;
-        document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
-        
-        const activeBtn = Array.from(document.querySelectorAll('.sidebar button')).find(btn => btn.innerText.toLowerCase().includes(pageId.toLowerCase()));
-        if(activeBtn) activeBtn.classList.add('active');
+    <div id="settingsPanel" class="fixed inset-x-0 bottom-0 bg-white p-6 rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 z-50">
+        <h3 class="font-bold text-gray-700 mb-4 uppercase text-sm">Pengaturan QRIS</h3>
+        <div class="p-4 neo-inset mb-4 text-center">
+             <img id="qrisPreview" src="" class="max-h-40 mx-auto hidden mb-2">
+             <p id="qrisStatus" class="text-[10px] text-gray-400 italic">QRIS Belum Diupload</p>
+        </div>
+        <input type="file" id="qrisUpload" accept="image/*" class="w-full text-xs mb-4">
+        <button onclick="saveSettings()" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold uppercase">SIMPAN QRIS</button>
+    </div>
 
-        toggleMenu();
-        if(pageId === 'kasir') renderKasir();
-        if(pageId === 'stok') renderStok();
-        if(pageId === 'riwayat') renderRiwayat();
-        if(pageId === 'pembayaran') initPayPage();
-    }
+    <div class="fixed bottom-6 inset-x-6 flex justify-between items-end pointer-events-none">
+        <button onclick="toggleNotes()" class="w-14 h-14 bg-yellow-400 text-gray-800 rounded-full text-xl shadow-xl z-40 flex items-center justify-center font-bold pointer-events-auto">&#9776;</button>
+        <button onclick="toggleInputPanel()" class="w-14 h-14 bg-blue-600 text-white rounded-full text-3xl shadow-xl z-40 flex items-center justify-center font-bold pointer-events-auto">+</button>
+    </div>
 
-    // --- KASIR LOGIC ---
-    function renderKasir() {
-        const list = document.getElementById('kasir-list');
-        const query = document.getElementById('searchBar').value.toLowerCase();
-        list.innerHTML = products.length === 0 ? '<p style="text-align:center">Belum ada barang di stok.</p>' : '';
-        
-        products.filter(p => p.name.toLowerCase().includes(query)).forEach(p => {
-            const qty = cart[p.id] || 0;
-            list.innerHTML += `
-                <div class="product-item">
-                    <div><b>${p.name}</b><br><small>Rp ${p.price.toLocaleString()} | Stok: ${p.stock}</small></div>
-                    <div class="qty-control">
-                        <button onclick="updateCart(${p.id},-1)">-</button>
-                        <b style="min-width:20px; text-align:center">${qty}</b>
-                        <button onclick="updateCart(${p.id},1)">+</button>
-                    </div>
-                </div>`;
-        });
-        updateTotal();
-    }
+    <div id="overlay" onclick="closeAllPanels()" class="fixed inset-0 bg-black/40 hidden z-40"></div>
 
-    function updateCart(id, change) {
-        const p = products.find(i => i.id === id);
-        const cur = cart[id] || 0;
-        if(change > 0 && p.stock <= cur) return alert('Stok tidak mencukupi!');
-        cart[id] = Math.max(0, cur + change);
-        renderKasir();
-    }
+    <div id="modalQris" onclick="this.classList.add('hidden')" class="fixed inset-0 bg-black/90 hidden z-[110] flex items-center justify-center p-8">
+        <div class="bg-white p-4 rounded-2xl w-full max-w-xs text-center">
+            <p class="text-sm font-bold mb-4 text-blue-600 uppercase">Silakan Scan QRIS</p>
+            <img id="imgQrisDisplay" src="" class="w-full rounded shadow-inner">
+            <p class="mt-4 text-[10px] text-gray-400 uppercase">Klik dimana saja untuk tutup</p>
+        </div>
+    </div>
 
-    function updateTotal() {
-        let t = 0;
-        products.forEach(p => t += (cart[p.id] || 0) * p.price);
-        document.getElementById('btn-bayar').innerText = `BAYAR (Rp ${t.toLocaleString()})`;
-    }
+    <script>
+        const BACKEND_URL = "https://ganti-dengan-link-render-kamu.onrender.com";
 
-    // --- STOK LOGIC (NEW FEATURES) ---
-    function renderStok() {
-        const list = document.getElementById('stok-list');
-        const query = document.getElementById('searchStok').value.toLowerCase();
-        list.innerHTML = '';
-        
-        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
-        
-        if(filtered.length === 0) {
-            list.innerHTML = '<p style="text-align:center; padding:20px; color:gray">Barang tidak ditemukan.</p>';
-            return;
+        let inventory = [];
+        let historyData = [];
+        let notesData = [];
+        let qrisImg = "";
+        let cart = [];
+        let paymentMethod = "TUNAI";
+        let scanner;
+
+        async function loadDataDariServer() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/data`);
+                const data = await response.json();
+                
+                inventory = data.inventory || [];
+                historyData = data.history || [];
+                notesData = data.notes || [];
+                qrisImg = data.qris || "";
+
+                document.getElementById('loadingInfo').style.display = 'none'; 0
+
+                renderBarang();
+                renderHistory();
+                renderNotes();
+                updateQrisPreview();
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('loadingInfo').innerText = "Gagal terhubung ke Cloud. Pastikan Backend menyala.";
+                document.getElementById('loadingInfo').classList.replace("text-blue-500", "text-red-500");
+            }
         }
 
-        filtered.forEach(p => {
-            list.innerHTML += `
-                <div class="product-item">
-                    <div style="flex:1">
-                        <b>${p.name}</b><br>
-                        <small>Harga: Rp ${p.price.toLocaleString()}</small>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px">
-                        <div class="qty-control">
-                            <button onclick="ubahStokManual(${p.id}, -1)">-</button>
-                            <span style="min-width:30px; text-align:center; font-weight:bold">${p.stock}</span>
-                            <button onclick="ubahStokManual(${p.id}, 1)">+</button>
-                        </div>
-                        <button class="btn-danger" onclick="hapusBarang(${p.id})">×</button>
-                    </div>
-                </div>`;
-        });
-    }
-
-    function ubahStokManual(id, change) {
-        const p = products.find(i => i.id === id);
-        if(p) {
-            if(p.stock + change < 0) return;
-            p.stock += change;
-            save();
-            renderStok();
-        }
-    }
-
-    function tambahBarang() {
-        const n = document.getElementById('new-name').value;
-        const p = parseInt(document.getElementById('new-price').value);
-        const s = parseInt(document.getElementById('new-stock').value || 0);
-        if(!n || !p) return alert('Nama dan Harga wajib diisi!');
-        
-        products.push({id: Date.now(), name: n, price: p, stock: s});
-        save(); 
-        renderStok();
-        
-        document.getElementById('new-name').value = ''; 
-        document.getElementById('new-price').value = ''; 
-        document.getElementById('new-stock').value = '';
-        alert('Barang berhasil ditambahkan!');
-    }
-
-    function hapusBarang(id) {
-        if(confirm('Hapus item dari daftar selamanya?')) { 
-            products = products.filter(p => p.id !== id); 
-            save(); 
-            renderStok(); 
-        }
-    }
-
-    // --- TRANSAKSI & BLUETOOTH ---
-    async function printBluetooth(text) {
-        try {
-            if (!bluetoothDevice) {
-                bluetoothDevice = await navigator.bluetooth.requestDevice({
-                    filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, { namePrefix: 'RPP' }, { namePrefix: 'MTP' }],
-                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+        async function saveDB() {
+            try {
+                await fetch(`${BACKEND_URL}/api/data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        inventory: inventory,
+                        history: historyData,
+                        notes: notesData,
+                        qris: qrisImg
+                    })
                 });
+                console.log("Data berhasil disimpan ke cloud!");
+            } catch (error) {
+                console.error("Gagal menyimpan data:", error);
+                alert("Koneksi bermasalah! Data gagal disimpan ke Cloud.");
             }
-            const server = await bluetoothDevice.gatt.connect();
-            const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-            const char = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-            const data = new TextEncoder().encode(text + "\n\n\n");
-            await char.writeValue(data);
-        } catch (e) { alert("Bluetooth Error: " + e.message); }
-    }
-
-    async function prosesBayar() {
-        let t = 0; 
-        let itemsDetail = []; 
-        let strukText = "   STRUK PEMBAYARAN\n------------------\n";
-        
-        let hasItem = false;
-        products.forEach(p => {
-            if(cart[p.id] > 0) {
-                hasItem = true;
-                let sub = p.price * cart[p.id];
-                t += sub;
-                p.stock -= cart[p.id];
-                itemsDetail.push(`${p.name} x${cart[p.id]}`);
-                strukText += `${p.name}\n${cart[p.id]} x ${p.price} = ${sub}\n`;
-            }
-        });
-        
-        if(!hasItem) return alert('Pilih barang terlebih dahulu!');
-        
-        strukText += `------------------\nTOTAL: Rp ${t.toLocaleString()}\nTerima Kasih!`;
-        history.unshift({id: Date.now(), time: new Date().toLocaleString(), total: t, detail: itemsDetail.join(", ")});
-        
-        cart = {}; 
-        save();
-        
-        if(confirm(`Total: Rp ${t.toLocaleString()}\nTransaksi Berhasil! Cetak Struk?`)) {
-            await printBluetooth(strukText);
         }
-        renderKasir();
-    }
 
-    // --- OTHER UTILITIES ---
-    function initPayPage() {
-        document.getElementById('pay-method').value = payInfo.method;
-        document.getElementById('pay-number').value = payInfo.number;
-        document.getElementById('pay-qris').value = payInfo.qris;
-        updatePayInfo();
-    }
+        function toggleNotes() {
+            document.getElementById('notesPanel').classList.toggle('translate-y-full');
+            document.getElementById('overlay').classList.toggle('hidden');
+            renderNotes();
+        }
 
-    function updatePayInfo() {
-        payInfo = {
-            method: document.getElementById('pay-method').value,
-            number: document.getElementById('pay-number').value,
-            qris: document.getElementById('pay-qris').value
-        };
-        document.getElementById('prev-method').innerText = payInfo.method;
-        document.getElementById('prev-number').innerText = payInfo.number;
-        const img = document.getElementById('qr-display');
-        if(payInfo.qris) { img.src = payInfo.qris; img.style.display = 'inline-block'; }
-        else { img.style.display = 'none'; }
-        save();
-    }
+        function addNote() {
+            const txt = document.getElementById('inputNote').value.trim();
+            if(!txt) return;
+            notesData.unshift({ id: Date.now(), text: txt });
+            document.getElementById('inputNote').value = "";
+            saveDB();
+            renderNotes();
+        }
 
-    function renderRiwayat() {
-        const list = document.getElementById('history-list');
-        list.innerHTML = history.length === 0 ? '<p style="text-align:center">Belum ada transaksi.</p>' : '';
-        history.forEach(h => {
-            list.innerHTML += `<div class="product-item">
-                <div><small>${h.time}</small><br><b>Rp ${h.total.toLocaleString()}</b><br><small>${h.detail}</small></div>
-                <button onclick="hapusRiwayat(${h.id})" style="color:red; border:none; background:none; cursor:pointer; font-size:20px">×</button>
-            </div>`;
-        });
-    }
+        function deleteNote(id) {
+            notesData = notesData.filter(n => n.id !== id);
+            saveDB();
+            renderNotes();
+        }
 
-    function hapusRiwayat(id) {
-        history = history.filter(h => h.id !== id);
-        save(); renderRiwayat();
-    }
+        function renderNotes() {
+            const list = document.getElementById('listNotes');
+            if(!notesData.length) { list.innerHTML = "<p class='text-center text-[10px] text-gray-400'>Tidak ada catatan.</p>"; return; }
+            list.innerHTML = notesData.map(n => `
+                <div class="flex justify-between items-center p-3 bg-yellow-50 rounded-lg text-xs border-l-4 border-yellow-400">
+                    <span class="text-gray-700 flex-1 pr-2">${n.text}</span>
+                    <button onclick="deleteNote(${n.id})" class="text-red-400 font-bold px-2"></button>
+                </div>`).join('');
+        }
 
-    function hapusSemuaRiwayat() {
-        if(confirm('Hapus semua laporan transaksi?')) { history = []; save(); renderRiwayat(); }
-    }
+        async function openScanner(mode) {
+            if (scanner) { try { await scanner.stop(); } catch(e) {} scanner = null; }
+            document.getElementById('scanner-overlay').style.display = 'flex';
+            scanner = new Html5Qrcode("scanner-box");
+            const config = { fps: 10, qrbox: 200 };
+            scanner.start({ facingMode: "environment" }, config, async (txt) => {
+                if(mode === 'JUAL') handleBarcode(txt);
+                if(mode === 'CARI') { document.getElementById('cariBarang').value = txt; renderBarang(); }
+                if(mode === 'TAMBAH') { document.getElementById('inputBarcode').value = txt; }
+                await closeScanner();
+            }).catch(() => { closeScanner(); });
+        }
 
-    function exportToExcel() {
-        if(history.length === 0) return alert('Tidak ada data untuk diekspor');
-        const ws = XLSX.utils.json_to_sheet(history);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Laporan Penjualan");
-        XLSX.writeFile(wb, "Laporan_MyKasir.xlsx");
-    }
+        async function closeScanner() {
+            if (scanner) { try { await scanner.stop(); } catch(e) {} scanner = null; }
+            document.getElementById('scanner-overlay').style.display = 'none';
+        }
 
-    function save() {
-        localStorage.setItem('db_products', JSON.stringify(products));
-        localStorage.setItem('db_history', JSON.stringify(history));
-        localStorage.setItem('db_pay', JSON.stringify(payInfo));
-    }
+        function handleBarcode(code) {
+            const item = inventory.find(i => i.barcode === code.trim());
+            if(item) {
+                if(item.stok <= 0) return alert("Stok Habis!");
+                const ada = cart.find(c => c.barcode === code);
+                if(ada) { if(ada.qty < item.stok) ada.qty++; else alert("Melebihi Stok!"); }
+                else { cart.push({...item, qty: 1}); }
+                renderCart();
+            } else { alert("Barang tidak ditemukan!"); }
+            document.getElementById('barcodeScan').value = "";
+        }
 
-    function logout() { location.reload(); }
-</script>
+        function renderBarang() {
+            const key = document.getElementById('cariBarang').value.toLowerCase();
+            const list = inventory.filter(i => i.nama.toLowerCase().includes(key) || i.barcode.includes(key));
+            document.getElementById('daftarBarang').innerHTML = list.map(i => `
+                <div class="flex justify-between items-center p-3 bg-white rounded-lg text-xs" onclick="handleBarcode('${i.barcode}')">
+                    <span>
+                        <b class="text-gray-700">${i.nama.toUpperCase()}</b><br>
+                        <span class="text-blue-600 font-bold">Stok: ${i.stok}</span> | 
+                        <span class="text-gray-400">#${i.barcode}</span>
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-gray-600">Rp ${i.harga.toLocaleString()}</span>
+                        <button onclick="event.stopPropagation(); hapusBarang('${i.barcode}')" class="text-red-400 font-bold px-2">&#10008;</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        function renderCart() {
+            let total = 0;
+            const container = document.getElementById('tabelPesanan');
+            if(!cart.length) { container.innerHTML = "Kosong."; document.getElementById('grandTotal').innerText = "Rp 0"; return; }
+            container.innerHTML = cart.map((c, idx) => {
+                total += (c.harga * c.qty);
+                return `<div class="flex justify-between items-center text-gray-700">
+                    <span>${c.nama} (${c.qty}x)</span>
+                    <span onclick="cart.splice(${idx},1); renderCart()" class="font-bold text-red-500">Rp ${(c.harga * c.qty).toLocaleString()}</span>
+                </div>`;
+            }).join('');
+            document.getElementById('grandTotal').innerText = "Rp " + total.toLocaleString();
+        }
+
+        function prosesTransaksi() {
+            if(!cart.length) return alert("Keranjang kosong!");
+            const total = cart.reduce((a,b) => a + (b.harga*b.qty), 0);
+            const trData = {
+                items: [...cart],
+                total: total,
+                pay: paymentMethod,
+                waktu: new Date().toLocaleString('id-ID')
+            };
+            cart.forEach(c => { const i = inventory.find(inv => inv.barcode === c.barcode); if(i) i.stok -= c.qty; });
+            historyData.unshift(trData);
+            saveDB(); renderBarang(); renderHistory();
+            if(confirm("Transaksi Berhasil! Cetak Struk?")) cetak(trData);
+            cart = []; renderCart();
+        }
+
+        function cetak(tr) {
+            const area = document.getElementById('printArea');
+            area.classList.remove('hidden'); 
+            
+            let itemHtml = tr.items.map(i => {
+                const namaQty = `${i.nama} x${i.qty}`;
+                const hargaTotal = (i.harga * i.qty).toLocaleString();
+                return `
+                    <div style="display:flex; justify-content:space-between; align-items: baseline; width: 100%; margin-bottom: 3px;">
+                        <span style="white-space: nowrap; flex-shrink: 0; max-width: 65%; overflow: hidden;">${namaQty}</span>
+                        <span style="flex-grow: 1;"></span>
+                        <span style="white-space: nowrap; flex-shrink: 0; font-weight: bold;">${hargaTotal}</span>
+                    </div>`;
+            }).join('');
+            
+            area.innerHTML = `
+                <div style="width: 58mm; font-family: 'Courier New', Courier, monospace; padding: 5px; font-size: 11px; color: #000; line-height: 1.4; background: white;">
+                    <center>
+                        <strong style="font-size: 14px;">MY KASIRCLOUD</strong><br>
+                        TOKO AFIYA<br>
+                        ------------------------------
+                    </center>
+                    <div style="margin: 5px 0; font-size: 10px;">
+                        Waktu  : ${tr.waktu}<br>
+                        Metode : ${tr.pay}
+                    </div>
+                    ------------------------------<br>
+                    <div style="margin: 5px 0;">
+                        ${itemHtml}
+                    </div>
+                    ------------------------------<br>
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size: 12px;">
+                        <span>TOTAL AKHIR</span>
+                        <span>${tr.total.toLocaleString()}</span>
+                    </div>
+                    <br>
+                    <center>
+                        ------------------------------<br>
+                        TERIMAKASIH SUDAH BERBELANJA<br>
+                        ------------------------------
+                    </center>
+                </div>`;
+            
+            setTimeout(() => { window.print(); area.classList.add('hidden'); }, 500);
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if(!historyData.length) { list.innerHTML = "<p class='text-center text-[10px] text-gray-400'>Belum ada transaksi.</p>"; return; }
+            list.innerHTML = historyData.map((h, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-white p-3 rounded-lg shadow-sm">
+                    <div><b>Rp ${h.total.toLocaleString()}</b><br><span class="text-gray-400">${h.waktu}</span></div>
+                    <button onclick="cetak(historyData[${i}])" class="neo-btn p-2"></button>
+                </div>`).join('');
+        }
+
+        function clearAllHistory() { if(confirm("Hapus semua histori?")) { historyData = []; saveDB(); renderHistory(); } }
+
+        function tambahBarang() {
+            const bc = document.getElementById('inputBarcode').value.trim();
+            const nm = document.getElementById('inputNama').value;
+            const hg = parseInt(document.getElementById('inputHarga').value);
+            const sk = parseInt(document.getElementById('inputStok').value) || 0;
+            if(!bc || !nm || !hg) return alert("Isi data dengan lengkap!");
+            
+            const existing = inventory.find(i => i.barcode === bc);
+            if(existing) {
+                existing.nama = nm; existing.harga = hg; existing.stok = sk;
+            } else {
+                inventory.push({barcode:bc, nama:nm, harga:hg, stok:sk});
+            }
+            saveDB(); renderBarang(); toggleInputPanel();
+            document.getElementById('inputBarcode').value = ""; document.getElementById('inputNama').value = "";
+            document.getElementById('inputHarga').value = ""; document.getElementById('inputStok').value = "";
+        }
+
+        function setPayment(type) {
+            paymentMethod = type;
+            document.getElementById('btnTunai').style.borderColor = type === 'TUNAI' ? '#60a5fa' : 'transparent';
+            document.getElementById('btnQris').style.borderColor = type === 'QRIS' ? '#60a5fa' : 'transparent';
+            if(type === 'QRIS') {
+                if(qrisImg) {
+                    document.getElementById('imgQrisDisplay').src = qrisImg;
+                    document.getElementById('modalQris').classList.remove('hidden');
+                } else { alert("Upload QRIS dulu di Pengaturan"); }
+            }
+        }
+
+        function saveSettings() {
+            const file = document.getElementById('qrisUpload').files[0];
+            if(!file) return alert("Pilih file QRIS!");
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                qrisImg = e.target.result;
+                saveDB();
+                updateQrisPreview();
+                alert("QRIS Berhasil Disimpan Ke Cloud!");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateQrisPreview() {
+            const preview = document.getElementById('qrisPreview');
+            const status = document.getElementById('qrisStatus');
+            if(qrisImg) { preview.src = qrisImg; preview.classList.remove('hidden'); status.innerText = "QRIS Terpasang"; }
+        }
+
+        function toggleInputPanel() { document.getElementById('inputPanel').classList.toggle('translate-y-full'); document.getElementById('overlay').classList.toggle('hidden'); }
+        function toggleSettings() { updateQrisPreview(); document.getElementById('settingsPanel').classList.toggle('translate-y-full'); document.getElementById('overlay').classList.toggle('hidden'); }
+        function closeAllPanels() { 
+            document.getElementById('inputPanel').classList.add('translate-y-full'); 
+            document.getElementById('settingsPanel').classList.add('translate-y-full'); 
+            document.getElementById('notesPanel').classList.add('translate-y-full'); 
+            document.getElementById('overlay').classList.add('hidden'); 
+        }
+        function hapusBarang(bc) { if(confirm("Hapus barang dari database?")) { inventory = inventory.filter(i => i.barcode !== bc); saveDB(); renderBarang(); } }
+        function clearCart() { cart = []; renderCart(); }
+        loadDataDariServer();
+    </script>
 </body>
-    </html>
+</html>
