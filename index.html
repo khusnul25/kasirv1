@@ -140,59 +140,11 @@
             <p class="mt-4 text-[10px] text-gray-400 uppercase">Klik dimana saja untuk tutup</p>
         </div>
     </div>            
-<script>
-    const BACKEND_URL = "/api";
-    let isDataLoaded = false; 
-    async function loadDataDariServer() {
-        try {
-            const response = await fetch(`${BACKEND_URL}/data`);
-            if (!response.ok) throw new Error("Gagal mengambil data");
-            
-            const data = await response.json();           
-            inventory = data.inventory || [];
-            historyData = data.history || [];
-            notesData = data.notes || [];
-            qrisImg = data.qris || "";
 
-            isDataLoaded = true; 
-            if (typeof renderBarang === 'function') renderBarang();
-            console.log("Data berhasil dimuat");
-        } catch (error) {
-            console.error("Gagal load data:", error);
-        }
-    }
-
-    async function saveDB() {
-        if (!isDataLoaded) {
-            console.warn("Data belum siap, save dibatalkan untuk mencegah overwrite!");
-            return;
-        }
-
-        try {
-            const response = await fetch(`${BACKEND_URL}/data`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    inventory: inventory, 
-                    history: historyData, 
-                    notes: notesData, 
-                    qris: qrisImg 
-                })
-            });
-            if (!response.ok) throw new Error("Gagal menyimpan data");
-            console.log("Data berhasil disimpan");
-        } catch (error) {
-            console.error("Gagal simpan data:", error);
-        }
-    }
-
-    loadDataDariServer();
-    setInterval(() => {
-        loadDataDariServer();
-    }, 5000); 
-</script>
     <script>
-const BACKEND_URL = "/api";
+        // --- KONFIGURASI & VARIABEL ---
+        const BACKEND_URL = "/api";
+        let isDataLoaded = false; 
         let inventory = [];
         let historyData = [];
         let notesData = [];
@@ -201,48 +153,59 @@ const BACKEND_URL = "/api";
         let paymentMethod = "TUNAI";
         let scanner;
 
+        // --- BACKEND API ---
         async function loadDataDariServer() {
             try {
                 const response = await fetch(`${BACKEND_URL}/data`);
-                const data = await response.json();
+                if (!response.ok) throw new Error("Gagal mengambil data");
                 
+                const data = await response.json();           
                 inventory = data.inventory || [];
                 historyData = data.history || [];
                 notesData = data.notes || [];
                 qrisImg = data.qris || "";
 
-                document.getElementById('loadingInfo').style.display = 'none'; 0
+                isDataLoaded = true; 
+                document.getElementById('loadingInfo').style.display = 'none';
 
                 renderBarang();
                 renderHistory();
                 renderNotes();
                 updateQrisPreview();
+                console.log("Data berhasil dimuat dari Cloud");
             } catch (error) {
-                console.error("Error:", error);
-                document.getElementById('loadingInfo').innerText = "Gagal terhubung ke Cloud. Pastikan Backend menyala.";
+                console.error("Gagal load data:", error);
+                document.getElementById('loadingInfo').innerText = "Gagal terhubung ke Cloud.";
                 document.getElementById('loadingInfo').classList.replace("text-blue-500", "text-red-500");
             }
         }
 
         async function saveDB() {
+            if (!isDataLoaded) {
+                console.warn("Data belum siap, save dibatalkan!");
+                return;
+            }
+
             try {
-                await fetch(`${BACKEND_URL}/api/data`, {
+                const response = await fetch(`${BACKEND_URL}/data`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        inventory: inventory,
-                        history: historyData,
-                        notes: notesData,
-                        qris: qrisImg
+                    body: JSON.stringify({ 
+                        inventory: inventory, 
+                        history: historyData, 
+                        notes: notesData, 
+                        qris: qrisImg 
                     })
                 });
-                console.log("Data berhasil disimpan ke cloud!");
+                if (!response.ok) throw new Error("Gagal menyimpan data");
+                console.log("Data berhasil disimpan ke Cloud!");
             } catch (error) {
-                console.error("Gagal menyimpan data:", error);
-                alert("Koneksi bermasalah! Data gagal disimpan ke Cloud.");
+                console.error("Gagal simpan data:", error);
+                alert("Koneksi bermasalah! Data gagal disimpan.");
             }
         }
 
+        // --- FUNGSI UI & LOGIKA ---
         function toggleNotes() {
             document.getElementById('notesPanel').classList.toggle('translate-y-full');
             document.getElementById('overlay').classList.toggle('hidden');
@@ -270,7 +233,7 @@ const BACKEND_URL = "/api";
             list.innerHTML = notesData.map(n => `
                 <div class="flex justify-between items-center p-3 bg-yellow-50 rounded-lg text-xs border-l-4 border-yellow-400">
                     <span class="text-gray-700 flex-1 pr-2">${n.text}</span>
-                    <button onclick="deleteNote(${n.id})" class="text-red-400 font-bold px-2"></button>
+                    <button onclick="deleteNote(${n.id})" class="text-red-400 font-bold px-2">X</button>
                 </div>`).join('');
         }
 
@@ -316,7 +279,7 @@ const BACKEND_URL = "/api";
                     </span>
                     <div class="flex items-center gap-2">
                         <span class="font-bold text-gray-600">Rp ${i.harga.toLocaleString()}</span>
-                        <button onclick="event.stopPropagation(); hapusBarang('${i.barcode}')" class="text-red-400 font-bold px-2">&#10008;</button>
+                        <button onclick="event.stopPropagation(); hapusBarang('${i.barcode}')" class="text-red-400 font-bold px-2">X</button>
                     </div>
                 </div>`).join('');
         }
@@ -372,26 +335,9 @@ const BACKEND_URL = "/api";
                         <strong style="font-size: 14px;">MY KASIRCLOUD</strong><br>
                         TOKO AFIYA<br>
                         ------------------------------
-                    </center>
-                    <div style="margin: 5px 0; font-size: 10px;">
-                        Waktu  : ${tr.waktu}<br>
-                        Metode : ${tr.pay}
-                    </div>
-                    ------------------------------<br>
-                    <div style="margin: 5px 0;">
-                        ${itemHtml}
-                    </div>
-                    ------------------------------<br>
-                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size: 12px;">
-                        <span>TOTAL AKHIR</span>
-                        <span>${tr.total.toLocaleString()}</span>
-                    </div>
-                    <br>
-                    <center>
-                        ------------------------------<br>
-                        TERIMAKASIH SUDAH BERBELANJA<br>
-                        ------------------------------
-                    </center>
+                   </center>
+                   ${itemHtml}
+                   <center>------------------------------<br>Total: <strong>Rp ${tr.total.toLocaleString()}</strong></center>
                 </div>`;
             
             setTimeout(() => { window.print(); area.classList.add('hidden'); }, 500);
@@ -403,7 +349,7 @@ const BACKEND_URL = "/api";
             list.innerHTML = historyData.map((h, i) => `
                 <div class="flex justify-between items-center text-[10px] bg-white p-3 rounded-lg shadow-sm">
                     <div><b>Rp ${h.total.toLocaleString()}</b><br><span class="text-gray-400">${h.waktu}</span></div>
-                    <button onclick="cetak(historyData[${i}])" class="neo-btn p-2"></button>
+                    <button onclick="cetak(historyData[${i}])" class="neo-btn p-2">🖨️</button>
                 </div>`).join('');
         }
 
@@ -468,66 +414,12 @@ const BACKEND_URL = "/api";
         }
         function hapusBarang(bc) { if(confirm("Hapus barang dari database?")) { inventory = inventory.filter(i => i.barcode !== bc); saveDB(); renderBarang(); } }
         function clearCart() { cart = []; renderCart(); }
+
+        // --- INISIALISASI ---
         loadDataDariServer();
+        setInterval(() => {
+            loadDataDariServer();
+        }, 5000); 
     </script>
-   
-<script>
-    const BACKEND_URL = "/api";
-    async function loadDataDariServer() {
-        try {
-            const response = await fetch(`${BACKEND_URL}/data`);
-            if (!response.ok) throw new Error("Gagal mengambil data");
-            
-            const data = await response.json();
-            
-            inventory = data.inventory || [];
-            historyData = data.history || [];
-            notesData = data.notes || [];
-            qrisImg = data.qris || "";
-
-            if (typeof renderBarang === 'function') renderBarang();
-            console.log("Data berhasil diperbarui dari server");
-        } catch (error) {
-            console.error("Gagal load data:", error);
-        }
-    }
-
-    async function saveDB() {
-        try {
-            const response = await fetch(`${BACKEND_URL}/data`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    inventory: inventory, 
-                    history: historyData, 
-                    notes: notesData, 
-                    qris: qrisImg 
-                })
-            });
-            if (!response.ok) throw new Error("Gagal menyimpan data");
-            console.log("Data berhasil disimpan ke server");
-        } catch (error) {
-            console.error("Gagal simpan data:", error);
-        }
-    }
-
-    function hapusBarang(bc) { 
-        if(confirm("Hapus barang dari database?")) { 
-            inventory = inventory.filter(i => i.barcode !== bc); 
-            saveDB(); 
-            if (typeof renderBarang === 'function') renderBarang();
-        } 
-    }
-
-    function clearCart() { 
-        cart = []; 
-        if (typeof renderCart === 'function') renderCart();
-    }
-
-    loadDataDariServer();
-    setInterval(() => {
-        loadDataDariServer();
-    }, 5000); 
-</script>
 </body>
 </html>
